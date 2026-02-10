@@ -24,6 +24,18 @@ app.get('/', (req, res) => {
   }
 });
 
+//SIMULAR BANCO
+
+const produtos = [
+  { nome: "arroz", mercado: "Mercado A", preco: 22.90 },
+  { nome: "arroz", mercado: "Mercado B", preco: 21.50 },
+  { nome: "arroz", mercado: "Mercado C", preco: 23.10 },
+  { nome: "feijao", mercado: "Mercado A", preco: 8.90 },
+  { nome: "feijao", mercado: "Mercado B", preco: 7.40 }
+];
+
+//===================
+
 // =====================
 // POST - Receber mensagens
 // =====================
@@ -51,7 +63,19 @@ app.post('/', async (req, res) => {
       resposta = "Olá! 👋\nDigite o nome do produto para consultar preços.";
     } 
     else {
-      resposta = `Você pesquisou: ${text}`;
+      const achados = produtos
+        .filter(p => p.nome.includes(text))
+        .sort((a, b) => a.preco - b.preco);
+    
+      if (achados.length === 0) {
+        resposta = `Não achei preços para: ${text}`;
+      } else {
+        resposta = `Melhores preços para *${text}*:\n\n`;
+        achados.slice(0, 3).forEach(p => {
+          resposta += `🏪 ${p.mercado}\n💰 R$ ${p.preco.toFixed(2)}\n\n`;
+        });
+      }
+    }
     }
 
     await enviarMensagem(from, resposta);
