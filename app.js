@@ -76,7 +76,6 @@ app.post('/', async (req, res) => {
         });
       }
     }
-    }
 
     await enviarMensagem(from, resposta);
   } catch (err) {
