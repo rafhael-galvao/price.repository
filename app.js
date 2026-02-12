@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(express.json());
@@ -9,6 +10,12 @@ const verifyToken = process.env.VERIFY_TOKEN;
 
 const TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_ID = process.env.PHONE_NUMBER_ID;
+
+// 🔥 SUPABASE
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 // =====================
 // GET - Verificação webhook
@@ -24,25 +31,12 @@ app.get('/', (req, res) => {
   }
 });
 
-//SIMULAR BANCO
-
-const produtos = [
-  { nome: "arroz", mercado: "Mercado A", preco: 22.90 },
-  { nome: "arroz", mercado: "Mercado B", preco: 21.50 },
-  { nome: "arroz", mercado: "Mercado C", preco: 23.10 },
-  { nome: "feijao", mercado: "Mercado A", preco: 8.90 },
-  { nome: "feijao", mercado: "Mercado B", preco: 7.40 }
-];
-
-//===================
-
 // =====================
 // POST - Receber mensagens
 // =====================
 app.post('/', async (req, res) => {
   const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  console.log(`\n\nWebhook received ${timestamp}\n`);
-  console.log(JSON.stringify(req.body, null, 2));
+  console.log(`\nWebhook received ${timestamp}\n`);
 
   try {
     const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
@@ -63,21 +57,63 @@ app.post('/', async (req, res) => {
       resposta = "Olá! 👋\nDigite o nome do produto para consultar preços.";
     } 
     else {
-      const achados = produtos
-        .filter(p => p.nome.includes(text))
-        .sort((a, b) => a.preco - b.preco);
-    
-      if (achados.length === 0) {
-        resposta = `Não achei preços para: ${text}`;
-      } else {
-        resposta = `Melhores preços para *${text}*:\n\n`;
-        achados.slice(0, 3).forEach(p => {
-          resposta += `🏪 ${p.mercado}\n💰 R$ ${p.preco.toFixed(2)}\n\n`;
+
+      // 🔎 CONSULTA NO SUPABASE COM JOIN
+      const { data, error } = await supabase
+        .from('precos')
+        .select(`
+          preco_normal,
+          preco_promo,
+          moeda,
+          fonte,
+          url,
+          data_coleta,
+          produtos ( nome ),
+          mercados ( nome, bairro, cidade )
+        `)
+        .ilike('produtos.nome', `%${text}%`);
+
+      if (error) {
+        console.log(error);
+        resposta = "Erro ao consultar preços 😕";
+      } 
+      else if (!data || data.length === 0) {
+        resposta = `Não encontrei preços para *${text}*`;
+      } 
+      else {
+        // Ordena pelo menor preço considerando promo primeiro
+        data.sort((a, b) => {
+          const precoA = a.preco_promo ?? a.preco_normal;
+          const precoB = b.preco_promo ?? b.preco_normal;
+          return precoA - precoB;
         });
+
+        const melhor = data[0];
+        const outros = data.slice(1, 4);
+
+        const melhorValor = melhor.preco_promo ?? melhor.preco_normal;
+
+        resposta = `🥇 *Melhor preço para ${text}*\n\n`;
+        resposta += `🏪 ${melhor.mercados.nome}\n`;
+        resposta += `📍 ${melhor.mercados.bairro} - ${melhor.mercados.cidade}\n`;
+        resposta += `💰 ${melhor.moeda || "R$"} ${Number(melhorValor).toFixed(2)}\n`;
+        resposta += `🔗 Fonte: ${melhor.fonte}\n`;
+        if (melhor.url) resposta += `🌐 ${melhor.url}\n`;
+        resposta += `📅 Coletado em: ${melhor.data_coleta}\n\n`;
+
+        if (outros.length > 0) {
+          resposta += `Outras opções:\n\n`;
+          outros.forEach((p, i) => {
+            const valor = p.preco_promo ?? p.preco_normal;
+            resposta += `${i + 2}️⃣ ${p.mercados.nome}\n`;
+            resposta += `💰 ${p.moeda || "R$"} ${Number(valor).toFixed(2)}\n\n`;
+          });
+        }
       }
     }
 
     await enviarMensagem(from, resposta);
+
   } catch (err) {
     console.error("Erro:", err.response?.data || err.message);
   }
@@ -90,8 +126,6 @@ app.post('/', async (req, res) => {
 // =====================
 async function enviarMensagem(to, message) {
   const url = `https://graph.facebook.com/v18.0/${PHONE_ID}/messages`;
-
-  console.log("Enviando mensagem para:", to);
 
   await axios.post(
     url,
@@ -112,5 +146,5 @@ async function enviarMensagem(to, message) {
 
 // =====================
 app.listen(port, () => {
-  console.log(`\nListening on port ${port}\n`);
+  console.log(`Listening on port ${port}`);
 });
