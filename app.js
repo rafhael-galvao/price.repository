@@ -69,7 +69,11 @@ app.post('/', async (req, res) => {
           url,
           data_coleta,
           produtos!precos_produto_fk ( nome ),
-          mercados!precos_mercado_fk(nome)
+          mercados!precos_mercado_fk (
+          nome,
+          bairro,
+          cidade
+          )
         `)
         .ilike('produtos.nome', `%${text}%`);
 
