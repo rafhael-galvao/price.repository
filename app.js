@@ -43,39 +43,47 @@ app.post('/', async (req, res) => {
     if (!msg) return res.sendStatus(200);
 
     const from = msg.from;
-    const text = msg.text?.body?.trim().toLowerCase();
+    const text = msg.text?.body?.trim().toLowerCase() || "";
 
     console.log("FROM:", from);
     console.log("TEXT:", text);
 
     let resposta;
 
-    if (!text) {
-      resposta = "Envie o nome de um produto 🙂";
-    } 
-    else if (text === "olá" || text === "ola") {
-      resposta = "Olá! 👋\nDigite o nome do produto para consultar preços.";
-    } 
-    else {
+    // 🔹 Ignorar mensagens muito curtas
+    if (text.length < 3) {
+      resposta = "Digite o nome de um produto para consultar preços 🙂";
+      await enviarMensagem(from, resposta);
+      return res.sendStatus(200);
+    }
+    
+    // 🔹 Detectar saudações comuns
+    const saudacoes = ["oi", "oii", "olá", "ola", "bom dia", "boa tarde", "boa noite"];
+    
+    if (saudacoes.includes(text)) {
+      resposta = "Olá! 👋\nDigite o nome do produto que deseja consultar.";
+      await enviarMensagem(from, resposta);
+      return res.sendStatus(200);
+    }
 
-      // 🔎 CONSULTA NO SUPABASE COM JOIN
-      const { data, error } = await supabase
-        .from('precos')
-        .select(`
-          preco_normal,
-          preco_promocional,
-          moeda,
-          fonte,
-          url,
-          data_coleta,
-          produtos!precos_produto_fk ( nome ),
-          mercados!precos_mercado_fk (
-          nome,
-          bairro,
-          cidade
-          )
-        `)
-        .ilike('produtos.nome', `%${text}%`);
+    // 🔎 CONSULTA NO SUPABASE COM JOIN
+    const { data, error } = await supabase
+      .from('precos')
+      .select(`
+        preco_normal,
+        preco_promocional,
+        moeda,
+        fonte,
+        url,
+        data_coleta,
+        produtos!precos_produto_fk ( nome ),
+        mercados!precos_mercado_fk (
+        nome,
+        bairro,
+        cidade
+        )
+      `)
+      .ilike('produtos.nome', `%${text}%`);
 
       if (error) {
         console.log(error);
@@ -85,15 +93,24 @@ app.post('/', async (req, res) => {
         resposta = `Não encontrei preços para *${text}*`;
       } 
       else {
-        // Ordena pelo menor preço considerando promo primeiro
-        data.sort((a, b) => {
-          const precoA = a.preco_promocional ?? a.preco_normal;
-          const precoB = b.preco_promocional ?? b.preco_normal;
-          return precoA - precoB;
+        // Remove preços inválidos (0 ou null)
+        const precosValidos = data.filter(p => {
+          const valor = p.preco_promocional ?? p.preco_normal;
+          return valor && Number(valor) > 0;
         });
-
-        const melhor = data[0];
-        const outros = data.slice(1, 4);
+        
+        if (precosValidos.length === 0) {
+          resposta = `Não encontrei preços válidos para *${text}*`;
+        } else {
+        
+          precosValidos.sort((a, b) => {
+            const precoA = a.preco_promocional ?? a.preco_normal;
+            const precoB = b.preco_promocional ?? b.preco_normal;
+            return precoA - precoB;
+          });
+        
+        const melhor = precosValidos[0];
+        const outros = precosValidos.slice(1, 4);
 
         const melhorValor = melhor.preco_promocional ?? melhor.preco_normal;
 
