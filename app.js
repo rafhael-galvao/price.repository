@@ -63,7 +63,7 @@ app.post('/', async (req, res) => {
         .from('precos')
         .select(`
           preco_normal,
-          preco_promo,
+          preco_promocional,
           moeda,
           fonte,
           url,
@@ -83,15 +83,15 @@ app.post('/', async (req, res) => {
       else {
         // Ordena pelo menor preço considerando promo primeiro
         data.sort((a, b) => {
-          const precoA = a.preco_promo ?? a.preco_normal;
-          const precoB = b.preco_promo ?? b.preco_normal;
+          const precoA = a.preco_promocional ?? a.preco_normal;
+          const precoB = b.preco_promocional ?? b.preco_normal;
           return precoA - precoB;
         });
 
         const melhor = data[0];
         const outros = data.slice(1, 4);
 
-        const melhorValor = melhor.preco_promo ?? melhor.preco_normal;
+        const melhorValor = melhor.preco_promocional ?? melhor.preco_normal;
 
         resposta = `🥇 *Melhor preço para ${text}*\n\n`;
         resposta += `🏪 ${melhor.mercados.nome}\n`;
@@ -104,7 +104,7 @@ app.post('/', async (req, res) => {
         if (outros.length > 0) {
           resposta += `Outras opções:\n\n`;
           outros.forEach((p, i) => {
-            const valor = p.preco_promo ?? p.preco_normal;
+            const valor = p.preco_promocional ?? p.preco_normal;
             resposta += `${i + 2}️⃣ ${p.mercados.nome}\n`;
             resposta += `💰 ${p.moeda || "R$"} ${Number(valor).toFixed(2)}\n\n`;
           });
