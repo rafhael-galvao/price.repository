@@ -83,7 +83,7 @@ app.post('/', async (req, res) => {
         cidade
         )
       `)
-      .ilike('produtos.nome', `${text}%`);
+      .ilike('produtos.nome', `%${text}%`)
 
       if (error) {
         console.log(error);
@@ -114,7 +114,9 @@ app.post('/', async (req, res) => {
 
         const melhorValor = melhor.preco_promocional ?? melhor.preco_normal;
 
-        resposta = `🥇 *Melhor preço para ${melhor.produtos.nome}*\n\n`;
+        const nomeProduto = melhor.produtos?.nome || text;
+
+        resposta = `🥇 *Melhor preço para ${nomeProduto}*\n\n`;
         resposta += `🏪 ${melhor.mercados.nome}\n`;
         resposta += `📍 ${melhor.mercados.bairro} - ${melhor.mercados.cidade}\n`;
         resposta += `💰 ${melhor.moeda || "R$"} ${Number(melhorValor).toFixed(2)}\n`;
