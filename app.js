@@ -67,22 +67,22 @@ app.post('/', async (req, res) => {
     }
 
     // 🔎 CONSULTA NO SUPABASE COM JOIN
-    // 1️⃣ Buscar produto pelo nome
-    const { data: produtoEncontrado, error: erroProduto } = await supabase
-      .from('produtos')
-      .select('id, nome')
-      .ilike('nome', `%${text}%`)
-      .limit(1);
-    
-    console.log("PRODUTO ENCONTRADO:", produtoEncontrado);
-    
-    if (!produtoEncontrado || produtoEncontrado.length === 0) {
-      resposta = `Produto não encontrado: ${text}`;
-      await enviarMensagem(from, resposta);
-      return res.sendStatus(200);
-    }
-    
-    const produtoId = produtoEncontrado[0].id;
+    const { data, error } = await supabase
+    .from('precos')
+    .select(`
+      preco_normal,
+      preco_promocional,
+      moeda,
+      fonte,
+      url,
+      data_coleta,
+      mercados (
+        nome,
+        bairro,
+        cidade
+      )
+    `)
+    .eq('produto_id', produtoId);
 
 
       if (error) {
