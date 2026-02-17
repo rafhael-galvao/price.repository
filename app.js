@@ -68,22 +68,25 @@ app.post('/', async (req, res) => {
 
     // 🔎 CONSULTA NO SUPABASE COM JOIN
     const { data, error } = await supabase
-      .from('precos')
-      .select(`
-        preco_normal,
-        preco_promocional,
-        moeda,
-        fonte,
-        url,
-        data_coleta,
-        produtos!precos_produto_fk ( nome ),
-        mercados!precos_mercado_fk (
+    .from('precos')
+    .select(`
+      preco_normal,
+      preco_promocional,
+      moeda,
+      fonte,
+      url,
+      data_coleta,
+      produtos!inner (
+        nome
+      ),
+      mercados (
         nome,
         bairro,
         cidade
-        )
-      `)
-      .ilike('produtos.nome', `%${text}%`)
+      )
+    `)
+    .ilike('produtos.nome', `%${text}%`);
+
 
       if (error) {
         console.log(error);
