@@ -76,10 +76,10 @@ app.post('/', async (req, res) => {
       fonte,
       url,
       data_coleta,
-      produtos!inner (
+      produtos:produtos!precos_produto_fk!inner (
         nome
       ),
-      mercados (
+      mercados:mercados!precos_mercado_fk (
         nome,
         bairro,
         cidade
