@@ -1,6 +1,36 @@
 {
+  "name": "price.repository",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "tsx --watch --env-file=.env.development src/app.ts",
+    "build": "tsup src/app.ts --format esm --clean --minify",
+    "start": "node --env-file=.env ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rafhael-galvao/price.repository.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/rafhael-galvao/price.repository/issues"
+  },
+  "homepage": "https://github.com/rafhael-galvao/price.repository#readme",
+  "devDependencies": {
+    "@types/node": "^25.4.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.95.3",
-    "axios": "^1.13.5"
+    "@supabase/supabase-js": "^2.99.0",
+    "fastify": "^5.8.2",
+    "fastify-type-provider-zod": "^6.1.0",
+    "http-status-codes": "^2.3.0",
+    "zod": "^4.3.6"
   }
 }
