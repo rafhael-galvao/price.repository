@@ -4,7 +4,8 @@ export const envSchema = z4.object({
     PORT: z4.coerce.number().default(3000),
     META_WEBHOOK_VERIFY_TOKEN: z4.string(),
     META_WHATSAPP_TOKEN: z4.string(),
-    META_WHATSAPP_PHONE_ID: z4.string(),
+    META_WHATSAPP_PHONE_ID_PROD: z4.string(),
+    META_WHATSAPP_PHONE_ID_TEST: z4.string(),
 
     SUPABASE_URL: z4.url(),
     SUPABASE_KEY: z4.string()

@@ -4,10 +4,13 @@ type WhatsappChatMessagePayload = {
     content: string
 }
 export class WhatsappChat {
-    constructor(private phoneId: string) { }
+    constructor(
+        private appPhoneId: string,
+        private phoneId: string
+    ) { }
 
     async message({ content }: WhatsappChatMessagePayload) {
-        const url = new URL(`https://graph.facebook.com/v18.0/${env.META_WHATSAPP_PHONE_ID}/messages`);
+        const url = new URL(`https://graph.facebook.com/v18.0/${this.appPhoneId}/messages`);
 
         const res = await fetch(url, {
             method: 'POST',

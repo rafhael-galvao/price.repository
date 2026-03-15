@@ -1,3 +1,4 @@
+import { env } from "@/config/env";
 import { supabase } from "@/services/supabase";
 import { WhatsappChat } from "@/services/whatsapp-chat";
 import { parseTemplate } from "@/utils/parse-template";
@@ -10,6 +11,10 @@ const whatsappWebhookPayloadSchema = z4.object({
         z4.object({
             changes: z4.array(
                 z4.object({
+                    metadata: z4.object({
+                        display_phone_number: z4.string(), // Número que recebeu
+                        phone_number_id: z4.string()   // ID do número que recebeu
+                    }),
                     value: z4.object({
                         messages: z4.array(
                             z4.object({
@@ -39,8 +44,19 @@ export default async function (app: FastifyInstanceWithZod) {
             const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
             console.log(`\nWebhook received ${timestamp}\n`);
 
+            console.log("JSON Payload", req.body)
+
             const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
             if (!msg) return rep.status(StatusCodes.OK).send();
+
+            const appPhoneId = req.body.entry?.[0]?.changes?.[0]?.metadata.phone_number_id
+            if ([
+                env.META_WHATSAPP_PHONE_ID_PROD,
+                env.META_WHATSAPP_PHONE_ID_TEST
+            ].includes(appPhoneId)) {
+                console.log('App phone number is not valid.')
+                return rep.status(StatusCodes.NOT_ACCEPTABLE).send()
+            }
 
             const from = msg.from;
             const text = msg.text?.body?.trim().toLowerCase() || "";
@@ -48,7 +64,7 @@ export default async function (app: FastifyInstanceWithZod) {
             console.log("FROM:", from);
             console.log("TEXT:", text);
 
-            const chat = new WhatsappChat(from)
+            const chat = new WhatsappChat(appPhoneId, from)
 
             const answerChat = async (message: string) => {
                 await chat.message({
