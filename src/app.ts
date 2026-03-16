@@ -5,7 +5,7 @@ import { env } from '@/config/env';
 import webhookVerification from '@/routes/webhook-verification';
 import webhookReceiveMessage from '@/routes/webhook-receive-message';
 
-const app = Fastify().withTypeProvider<ZodTypeProvider>();
+const app = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
