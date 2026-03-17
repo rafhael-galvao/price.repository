@@ -97,11 +97,6 @@ export default async function (app: FastifyInstanceWithZod) {
             }
 
             try {
-                // 🔹 Ignorar mensagens muito curtas
-                if (plainTextMessage.length < 3) {
-                    return answerChat("Digite o nome de um produto para consultar preços 🙂")
-                }
-
                 const greetings = ["oi", "oii", "olá", "ola", "bom dia", "boa tarde", "boa noite"];
 
                 if (greetings.includes(plainTextMessage)) {
@@ -111,6 +106,11 @@ export default async function (app: FastifyInstanceWithZod) {
                             "Digite o nome do produto que deseja consultar."
                         ].join("\n")
                     )
+                }
+
+                // 🔹 Ignorar mensagens muito curtas
+                if (plainTextMessage.length < 3) {
+                    return answerChat("Digite o nome de um produto para consultar preços 🙂")
                 }
 
                 const {
