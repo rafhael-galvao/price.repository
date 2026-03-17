@@ -7,8 +7,10 @@ import { StatusCodes } from "http-status-codes";
 import z4 from "zod/v4";
 
 const whatsappWebhookPayloadSchema = z4.object({
+    object: z4.enum(['whatsapp_business_account']),
     entry: z4.array(
         z4.object({
+            id: z4.string(),
             changes: z4.array(
                 z4.object({
                     metadata: z4.object({
@@ -42,7 +44,7 @@ export default async function (app: FastifyInstanceWithZod) {
     return app
         .post('/', async (req, rep) => {
             const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
-            console.info(`\nWebhook received ${timestamp}\n with payload: `, req.body);
+            console.info(`\nWebhook received ${timestamp}\n with payload: `, JSON.stringify(req.body));
 
             // @ts-expect-error teste
             const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
