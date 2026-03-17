@@ -13,11 +13,16 @@ const whatsappWebhookPayloadSchema = z4.object({
             id: z4.string(),
             changes: z4.array(
                 z4.object({
-                    metadata: z4.object({
-                        display_phone_number: z4.string(), // Número que recebeu
-                        phone_number_id: z4.string()   // ID do número que recebeu
-                    }),
                     value: z4.object({
+                        messaging_product: z4.literal("whatsapp"),
+                        metadata: z4.object({
+                            display_phone_number: z4.string(), // Número que recebeu
+                            phone_number_id: z4.string()   // ID do número que recebeu
+                        }),
+                        contacts: z4.array(z4.object({
+                            profile: z4.object({ name: z4.string() }),
+                            wa_id: z4.string()
+                        })),
                         messages: z4.array(
                             z4.object({
                                 from: z4.string(),
@@ -26,10 +31,11 @@ const whatsappWebhookPayloadSchema = z4.object({
                                 }).optional(),
                                 id: z4.string().optional(),
                                 timestamp: z4.string().optional(),
-                                type: z4.string().optional()
+                                type: z4.enum(["text"])
                             })
-                        ).optional()
-                    })
+                        )
+                    }),
+                    field: z4.literal("messages")
                 })
             )
         })
@@ -42,16 +48,15 @@ const schema = {
 
 export default async function (app: FastifyInstanceWithZod) {
     return app
-        .post('/', async (req, rep) => {
+        .post('/', { schema }, async (req, rep) => {
             const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
             console.info(`\nWebhook received ${timestamp}\n with payload: `, JSON.stringify(req.body));
 
-            // @ts-expect-error teste
-            const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-            if (!msg) return rep.status(StatusCodes.OK).send();
+            const [incomingEntryPayload] = req.body.entry
+            const { changes } = incomingEntryPayload
+            const [incomingMessage] = changes
 
-            // @ts-expect-error teste
-            const appPhoneId = req.body.entry?.[0]?.changes?.[0]?.metadata.phone_number_id
+            const appPhoneId = incomingMessage.value.metadata.phone_number_id
             if ([
                 env.META_WHATSAPP_PHONE_ID_PROD,
                 env.META_WHATSAPP_PHONE_ID_TEST
@@ -60,11 +65,11 @@ export default async function (app: FastifyInstanceWithZod) {
                 return rep.status(StatusCodes.NOT_ACCEPTABLE).send()
             }
 
-            const from = msg.from;
-            const text = msg.text?.body?.trim().toLowerCase() || "";
+            const from = incomingMessage.value.messages.at(0)?.from ?? "";
+            const text = String(incomingMessage.value.messages.at(0)?.text?.body ?? "").trim().toLowerCase()
 
-            console.log("FROM:", from);
-            console.log("TEXT:", text);
+            console.info("FROM:", from);
+            console.info("TEXT:", text);
 
             const chat = new WhatsappChat(appPhoneId, from)
 
