@@ -21,6 +21,7 @@ export default async function (app: FastifyInstanceWithZod) {
             } = req.query
 
             if (mode !== 'subscribe' || verify_token !== env.META_WEBHOOK_VERIFY_TOKEN) {
+                console.error("WEBHOOK VERIFICATION FAIL")
                 return rep.status(StatusCodes.FORBIDDEN).send()
             }
 

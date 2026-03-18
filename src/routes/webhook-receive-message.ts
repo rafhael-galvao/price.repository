@@ -1,4 +1,3 @@
-import { env } from "@/config/env";
 import { supabase } from "@/services/supabase";
 import { WhatsappSender } from "@/services/whatsapp-sender";
 import { parseTemplate } from "@/utils/parse-template";
@@ -52,78 +51,86 @@ export default async function (app: FastifyInstanceWithZod) {
             const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
             console.info(`\nWebhook received ${timestamp} with payload: \n`, JSON.stringify(req.body, null, 4));
 
-            const [incomingEntry] = req.body.entry
-            const [incomingChange] = incomingEntry.changes
+            const { object, entry } = req.body
 
-            const [message] = incomingChange.value.messages
+            if (object === "whatsapp_business_account") {
+                for (const { changes } of entry) {
+                    for (const { value } of changes) {
+                        if (!value) continue
 
-            const phoneIdReceived = incomingChange.value.metadata.phone_number_id
+                        const phoneIdReceived = value.metadata.phone_number_id
 
-            console.info({
-                phoneIdReceived,
-                message
-            })
+                        console.info({
+                            phoneIdReceived
+                        })
 
-            if (phoneIdReceived !== env.META_WHATSAPP_PHONE_ID) {
-                console.log('O Phone ID recebido é diferente do configurado para a aplicação.')
-                return rep.status(StatusCodes.NOT_ACCEPTABLE).send()
+                        for (const message of value.messages) {
+                            handleMessage(phoneIdReceived, message)
+                        }
+                    }
+                }
             }
 
-            const {
-                from: recipientPhone,
-                type: messageType,
-                text: messageContent
-            } = message
+            rep.status(StatusCodes.OK).send()
+        })
+}
 
-            const plainTextMessage = messageType === 'text' ? messageContent.body : ""
+type IncomingMessage = z4.infer<typeof whatsappWebhookPayloadSchema>["entry"][number]["changes"][number]["value"]["messages"][number]
+async function handleMessage(phoneIdReceived: string, message: IncomingMessage) {
+    const {
+        from: recipientPhone,
+        type: messageType,
+        text: messageContent
+    } = message
 
-            const sender = new WhatsappSender(recipientPhone)
+    const plainTextMessage = messageType === 'text' ? messageContent.body : ""
 
-            const answerChat = async (message: string) => {
-                await sender.message({
-                    content: message
-                });
-                return rep.status(StatusCodes.OK).send()
-            }
+    const sender = new WhatsappSender(phoneIdReceived, recipientPhone)
 
-            try {
-                const greetings = ["oi", "oii", "olá", "ola", "bom dia", "boa tarde", "boa noite"];
+    const answerChat = async (message: string) => {
+        await sender.message({
+            content: message
+        });
+    }
 
-                if (greetings.includes(plainTextMessage)) {
-                    return answerChat(
-                        [
-                            "Olá! 👋",
-                            "Digite o nome do produto que deseja consultar."
-                        ].join("\n")
-                    )
-                }
+    try {
+        const greetings = ["oi", "oii", "olá", "ola", "bom dia", "boa tarde", "boa noite"];
 
-                // 🔹 Ignorar mensagens muito curtas
-                if (plainTextMessage.length < 3) {
-                    return answerChat("Digite o nome de um produto para consultar preços 🙂")
-                }
+        if (greetings.includes(plainTextMessage)) {
+            return answerChat(
+                [
+                    "Olá! 👋",
+                    "Digite o nome do produto que deseja consultar."
+                ].join("\n")
+            )
+        }
 
-                const {
-                    data: products,
-                    error: fetchProductsError
-                } = await supabase
-                    .from('produtos')
-                    .select('id')
-                    .ilike('nome', `%${plainTextMessage}%`)
-                    .limit(1);
+        // 🔹 Ignorar mensagens muito curtas
+        if (plainTextMessage.length < 3) {
+            return answerChat("Digite o nome de um produto para consultar preços 🙂")
+        }
 
-                if (fetchProductsError || !products || products.length === 0) {
-                    return answerChat(`Produto "${plainTextMessage}" não encontrado.`)
-                }
+        const {
+            data: products,
+            error: fetchProductsError
+        } = await supabase
+            .from('produtos')
+            .select('id')
+            .ilike('nome', `%${plainTextMessage}%`)
+            .limit(1);
 
-                const [firstProductFounded] = products
+        if (fetchProductsError || !products || products.length === 0) {
+            return answerChat(`Produto "${plainTextMessage}" não encontrado.`)
+        }
 
-                const {
-                    data: metadataForFirstProduct,
-                    error: fetchMetadataForFirstProductError
-                } = await supabase
-                    .from('precos')
-                    .select(`
+        const [firstProductFounded] = products
+
+        const {
+            data: metadataForFirstProduct,
+            error: fetchMetadataForFirstProductError
+        } = await supabase
+            .from('precos')
+            .select(`
                         preco_normal,
                         preco_promocional,
                         moeda,
@@ -139,83 +146,82 @@ export default async function (app: FastifyInstanceWithZod) {
                             nome
                         )
                     `)
-                    .eq('produto_id', firstProductFounded.id);
+            .eq('produto_id', firstProductFounded.id);
 
-                if (fetchMetadataForFirstProductError) {
-                    console.error(fetchMetadataForFirstProductError);
-                    return answerChat("Erro ao consultar preços 😕")
-                }
+        if (fetchMetadataForFirstProductError) {
+            console.error(fetchMetadataForFirstProductError);
+            return answerChat("Erro ao consultar preços 😕")
+        }
 
-                if (metadataForFirstProduct.length === 0) {
-                    return answerChat(`Não encontrei preços para *${plainTextMessage}*`)
-                }
+        if (metadataForFirstProduct.length === 0) {
+            return answerChat(`Não encontrei preços para *${plainTextMessage}*`)
+        }
 
-                const validPrices = metadataForFirstProduct.filter(p => {
-                    const valor = p.preco_promocional ?? p.preco_normal;
-                    return valor && Number(valor) > 0;
-                });
+        const validPrices = metadataForFirstProduct.filter(p => {
+            const valor = p.preco_promocional ?? p.preco_normal;
+            return valor && Number(valor) > 0;
+        });
 
-                if (validPrices.length === 0) {
-                    return answerChat(`Não encontrei preços válidos para *${plainTextMessage}*`)
-                }
+        if (validPrices.length === 0) {
+            return answerChat(`Não encontrei preços válidos para *${plainTextMessage}*`)
+        }
 
-                validPrices.sort((a, b) => {
-                    const precoA = a.preco_promocional ?? a.preco_normal;
-                    const precoB = b.preco_promocional ?? b.preco_normal;
-                    return precoA - precoB;
-                });
+        validPrices.sort((a, b) => {
+            const precoA = a.preco_promocional ?? a.preco_normal;
+            const precoB = b.preco_promocional ?? b.preco_normal;
+            return precoA - precoB;
+        });
 
-                const [bestProductPrice] = validPrices;
-                const othersBestProductPrices = validPrices.slice(1, 4);
+        const [bestProductPrice] = validPrices;
+        const othersBestProductPrices = validPrices.slice(1, 4);
 
-                const bestPrice = bestProductPrice.preco_promocional ?? bestProductPrice.preco_normal;
+        const bestPrice = bestProductPrice.preco_promocional ?? bestProductPrice.preco_normal;
 
-                const messageTemplate = [
-                    "🥇 *Melhor preço para {{BEST_PRODUCT_NAME}}*",
-                    "",
-                    "🏪 {{STORE_NAME}}",
-                    "📍 {{STORE_LOCALIZATION}}",
-                    "💰 {{BEST_PRODUCT_PRICE}}",
-                    "🔗 Fonte: {{SOURCE}}",
-                    "📅 Coletado em: {{LATEST_EXTRACTION_DATE}}"
-                ]
+        const messageTemplate = [
+            "🥇 *Melhor preço para {{BEST_PRODUCT_NAME}}*",
+            "",
+            "🏪 {{STORE_NAME}}",
+            "📍 {{STORE_LOCALIZATION}}",
+            "💰 {{BEST_PRODUCT_PRICE}}",
+            "🔗 Fonte: {{SOURCE}}",
+            "📅 Coletado em: {{LATEST_EXTRACTION_DATE}}"
+        ]
 
-                if (othersBestProductPrices.length > 0) {
-                    messageTemplate.push("")
-                    othersBestProductPrices.forEach((_, i) => {
+        if (othersBestProductPrices.length > 0) {
+            messageTemplate.push("")
+            othersBestProductPrices.forEach((_, i) => {
+                const pos = String(i + 1)
+                messageTemplate.push(
+                    `${pos}º {{OTHER_STORE_${pos}_NAME}}`,
+                    `💰 {{OTHER_STORE_${pos}_PRODUCT_PRICE}}`
+                )
+            })
+        }
+
+        const message = parseTemplate(messageTemplate.join("\n"), {
+            BEST_PRODUCT_NAME: bestProductPrice.produtos.at(0)?.nome || plainTextMessage,
+            STORE_NAME: bestProductPrice.mercados.at(0)?.nome,
+            STORE_LOCALIZATION: `${bestProductPrice.mercados.at(0)?.bairro} - ${bestProductPrice.mercados.at(0)?.cidade}`,
+            BEST_PRODUCT_PRICE: bestPrice,
+            SOURCE: bestProductPrice.fonte,
+            LATEST_EXTRACTION_DATE: bestProductPrice.data_coleta,
+            ...Object.fromEntries(
+                othersBestProductPrices.reduce(
+                    (vars, other, i) => {
                         const pos = String(i + 1)
-                        messageTemplate.push(
-                            `${pos}º {{OTHER_STORE_${pos}_NAME}}`,
-                            `💰 {{OTHER_STORE_${pos}_PRODUCT_PRICE}}`
-                        )
-                    })
-                }
-
-                const message = parseTemplate(messageTemplate.join("\n"), {
-                    BEST_PRODUCT_NAME: bestProductPrice.produtos.at(0)?.nome || plainTextMessage,
-                    STORE_NAME: bestProductPrice.mercados.at(0)?.nome,
-                    STORE_LOCALIZATION: `${bestProductPrice.mercados.at(0)?.bairro} - ${bestProductPrice.mercados.at(0)?.cidade}`,
-                    BEST_PRODUCT_PRICE: bestPrice,
-                    SOURCE: bestProductPrice.fonte,
-                    LATEST_EXTRACTION_DATE: bestProductPrice.data_coleta,
-                    ...Object.fromEntries(
-                        othersBestProductPrices.reduce(
-                            (vars, other, i) => {
-                                const pos = String(i + 1)
-                                vars.set(`OTHER_STORE_${pos}_NAME`, other.mercados.at(0)?.nome)
-                                vars.set(`OTHER_STORE_${pos}_PRODUCT_PRICE`, other.preco_promocional ?? other.preco_normal)
-                                return vars
-                            },
-                            new Map
-                        ).entries()
-                    )
-                })
-
-                return answerChat(message)
-            }
-            catch (e) {
-                console.error(e)
-                return answerChat("Erro ao consultar preços 😕")
-            }
+                        vars.set(`OTHER_STORE_${pos}_NAME`, other.mercados.at(0)?.nome)
+                        vars.set(`OTHER_STORE_${pos}_PRODUCT_PRICE`, other.preco_promocional ?? other.preco_normal)
+                        return vars
+                    },
+                    new Map
+                ).entries()
+            )
         })
+
+        return answerChat(message)
+    }
+    catch (e) {
+        console.error(e)
+        return answerChat("Erro ao consultar preços 😕")
+    }
 }

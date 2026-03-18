@@ -5,11 +5,12 @@ type WhatsappSenderMessageOptions = {
 }
 export class WhatsappSender {
     constructor(
+        private phoneIdReceived: string,
         private recipientPhone: string
     ) { }
 
     async message({ content }: WhatsappSenderMessageOptions) {
-        const url = new URL(`https://graph.facebook.com/v${env.META_WHATSAPP_API_VERSION}/${env.META_WHATSAPP_PHONE_ID}/messages`);
+        const url = new URL(`https://graph.facebook.com/v${env.META_WHATSAPP_API_VERSION}/${this.phoneIdReceived}/messages`);
 
         const res = await fetch(url, {
             method: 'POST',
