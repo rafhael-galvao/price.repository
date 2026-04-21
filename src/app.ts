@@ -1,23 +1,41 @@
-import Fastify from 'fastify';
-import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
-import { env } from '@/config/env';
+import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
+import { pathToFileURL } from "node:url";
 
-import webhookVerification from '@/routes/webhook-verification';
-import webhookReceiveMessage from '@/routes/webhook-receive-message';
+import { env } from "@/config/env";
+import webhookVerification from "@/routes/webhook-verification";
+import webhookReceiveMessage from "@/routes/webhook-receive-message";
 
-const app = Fastify().withTypeProvider<ZodTypeProvider>();
+export function buildApp() {
+    const app = Fastify().withTypeProvider<ZodTypeProvider>();
 
-app.setValidatorCompiler(validatorCompiler);
-app.setSerializerCompiler(serializerCompiler);
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
 
-app.register(webhookVerification)
-app.register(webhookReceiveMessage)
+    app.get("/", async () => ({
+        ok: true,
+        webhook: "/webhook",
+    }));
 
-app.listen({ port: env.PORT, host: '0.0.0.0' }, (err) => {
-    if (err) {
-        console.error(err)
-        process.exit(1)
-    }
-    console.info("Servidor no ar 🚀")
-    console.info(app.printRoutes())
-})
+    app.register(webhookVerification);
+    app.register(webhookReceiveMessage);
+
+    return app;
+}
+
+export async function startApp() {
+    const app = buildApp();
+    await app.listen({ port: env.PORT, host: "0.0.0.0" });
+
+    console.info("Servidor no ar");
+    console.info(app.printRoutes());
+
+    return app;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    startApp().catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
+}

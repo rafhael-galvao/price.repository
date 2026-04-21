@@ -6,6 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx --watch --env-file=.env src/app.ts",
+    "dev:local": "tsx --watch --env-file=.env src/dev/local-chat.ts",
     "build": "tsup src/app.ts --format esm --clean --minify",
     "start": "node ."
   },

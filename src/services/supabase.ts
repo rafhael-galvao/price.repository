@@ -1,7 +1,15 @@
-import { env } from "@/config/env";
 import { createClient } from "@supabase/supabase-js";
 
-export const supabase = createClient(
-    env.SUPABASE_URL,
-    env.SUPABASE_KEY
-)
+type SupabaseCredentials = {
+    url: string;
+    serviceRoleKey: string;
+};
+
+export function createSupabaseClient({ url, serviceRoleKey }: SupabaseCredentials) {
+    return createClient(url, serviceRoleKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        },
+    });
+}
