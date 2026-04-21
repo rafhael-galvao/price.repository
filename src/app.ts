@@ -1,6 +1,5 @@
 import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from "fastify-type-provider-zod";
-import { pathToFileURL } from "node:url";
 
 import { env } from "@/config/env";
 import webhookVerification from "@/routes/webhook-verification";
@@ -31,11 +30,4 @@ export async function startApp() {
     console.info(app.printRoutes());
 
     return app;
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-    startApp().catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
 }
