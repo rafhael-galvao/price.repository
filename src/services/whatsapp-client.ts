@@ -64,7 +64,7 @@ export class WhatsappClient {
 
         console.log({
             url,
-            res: res.text()
+            res: await res.text()
         })
 
         if (!res.ok) {
