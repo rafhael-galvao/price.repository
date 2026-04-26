@@ -1,4 +1,4 @@
-import { createSupabaseClient } from "@/services/supabase";
+import { createSupabaseClient } from "@/supabase";
 import type { Database } from "@/supabase/database.types";
 
 export type OfferResult = Database["public"]["Functions"]["buscar_ofertas"]["Returns"][number]

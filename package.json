@@ -6,12 +6,19 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx --env-file=.env src/dev/local-chat.ts",
-    "supabase:start": "supabase --workdir=src start",
-    "supabase:stop": "supabase --workdir=src stop",
-    "supabase:db:reset": "supabase --workdir=src db reset --local",
-    "supabase:generate:types": "supabase --workdir=src gen types --local > src/supabase/database.types.ts",
     "build": "tsup src/server.ts --format esm --clean --minify",
-    "start": "node ."
+    "start": "node .",
+    "supabase": "npx supabase --workdir=src",
+    "supabase:start": "npm run supabase -- start --exclude=realtime,logflare,imgproxy,supavisor,vector",
+    "supabase:stop": "npm run supabase -- stop --all",
+    "supabase:status": "npm run supabase -- status",
+    "supabase:generate:types": "npm run --silent supabase -- gen types --local > src/supabase/database.types.ts",
+    "supabase:db:diff": "npm run supabase -- db diff --local",
+    "supabase:db:reset": "npm run supabase -- db reset --local",
+    "supabase:migration:new": "npm run supabase -- migration new",
+    "supabase:migration:list": "npm run supabase -- migration list --local",
+    "supabase:migration:up": "npm run supabase -- migration up --local",
+    "supabase:migration:down": "npm run supabase -- migration down --local"
   },
   "repository": {
     "type": "git",
