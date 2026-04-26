@@ -64,7 +64,7 @@ export default async function (app: FastifyInstanceWithZod) {
                 const phoneNumberId = value.metadata.phone_number_id;
 
                 if (phoneNumberId !== env.META_WHATSAPP_PHONE_NUMBER_ID) {
-                    console.info("Phone number id received (${phoneNumberId}) is recognized.")
+                    console.info(`Phone number id received (${phoneNumberId}) is unrecognized, skipping.`)
                     continue
                 }
 
