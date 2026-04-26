@@ -5,7 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "tsx --env-file=.env src/dev/local-chat.ts",
+    "chat": "tsx --env-file=.env src/chat.ts",
+    "dev": "tsx --watch --env-file=.env src/server.ts",
     "build": "tsup src/server.ts --format esm --clean --minify",
     "start": "node .",
     "supabase": "npx supabase --workdir=src",
