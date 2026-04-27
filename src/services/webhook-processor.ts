@@ -7,8 +7,8 @@ import type { IncomingWhatsappStatus, IncomingWhatsappTextMessage } from "@/serv
 import { env } from "@/config/env";
 
 export async function processIncomingWhatsappMessage(message: IncomingWhatsappTextMessage) {
-
     const whatsappClient = new WhatsappClient();
+
     await whatsappClient.markAsRead(message.id);
     await whatsappClient.sendTypingIndicator(message.id);
 

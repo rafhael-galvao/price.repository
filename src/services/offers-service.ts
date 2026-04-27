@@ -1,5 +1,7 @@
-import { createSupabaseClient } from "@/services/supabase";
+import { createSupabaseClient } from "@/supabase";
 import type { Database } from "@/supabase/database.types";
+import { formatCurrency } from "@/utils/format-currency";
+import { formatDate } from "@/utils/format-date";
 
 export type OfferResult = Database["public"]["Functions"]["buscar_ofertas"]["Returns"][number]
 
@@ -16,20 +18,6 @@ export async function searchOffers(term: string, limit = 5) {
     }
 
     return (data ?? []) as OfferResult[]
-}
-
-function formatCurrency(value: number) {
-    return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-    }).format(value);
-}
-
-function formatDate(value: string) {
-    return new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-    }).format(new Date(`${value}T00:00:00`));
 }
 
 function getStoreTypeEmoji(storeType?: string | null) {

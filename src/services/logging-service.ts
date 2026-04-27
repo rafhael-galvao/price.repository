@@ -1,5 +1,5 @@
-import { createSupabaseClient } from "@/services/supabase";
 import type { MessageClassification } from "@/services/message-classifier";
+import { createSupabaseClient } from "@/supabase";
 
 type RegisterIntentInput = {
     classification: MessageClassification;

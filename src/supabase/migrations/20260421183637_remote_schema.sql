@@ -146,7 +146,7 @@ $$;
 ALTER FUNCTION "public"."produtos_set_nome_search"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_id_telefone_whatsapp_receptor" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") RETURNS "uuid"
     LANGUAGE "plpgsql"
     AS $$
 DECLARE
@@ -165,7 +165,6 @@ BEGIN
   INSERT INTO public.log_intencoes (
     id_usuario,
     classificacao,
-    id_telefone_whatsapp_receptor,
     termo_identificado,
     mensagem_recebida,
     mensagem_normalizada,
@@ -173,7 +172,6 @@ BEGIN
   ) VALUES (
     v_id_usuario,
     p_classificacao,
-    p_id_telefone_whatsapp_receptor,
     p_termo_identificado,
     p_mensagem_recebida,
     p_mensagem_normalizada,
@@ -186,7 +184,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_id_telefone_whatsapp_receptor" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."registrar_log_resposta"("p_id_intencao" "uuid", "p_total_resultados_busca" integer DEFAULT 0, "p_resultados" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "uuid"
@@ -284,7 +282,6 @@ CREATE TABLE IF NOT EXISTS "public"."log_intencoes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "id_usuario" "uuid",
     "classificacao" "text" NOT NULL,
-    "id_telefone_whatsapp_receptor" "text" NOT NULL,
     "termo_identificado" "text",
     "mensagem_recebida" "text" NOT NULL,
     "mensagem_normalizada" "text",
@@ -856,9 +853,9 @@ GRANT ALL ON FUNCTION "public"."produtos_set_nome_search"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_id_telefone_whatsapp_receptor" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_id_telefone_whatsapp_receptor" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_id_telefone_whatsapp_receptor" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."registrar_log_intencao"("p_classificacao" "text", "p_id_mensagem_whatsapp" "text", "p_mensagem_normalizada" "text", "p_mensagem_recebida" "text", "p_telefone_usuario" "text", "p_termo_identificado" "text") TO "service_role";
 
 
 

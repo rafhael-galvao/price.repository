@@ -78,6 +78,6 @@ export default async function (app: FastifyInstanceWithZod) {
             }
         }
 
-        return rep.status(StatusCodes.OK).send({ received: true });
+        return rep.status(StatusCodes.OK).send();
     });
 }
